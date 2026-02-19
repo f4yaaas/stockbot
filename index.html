@@ -1,125 +1,571 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MarketBot</title>
-<style>
-body{margin:0;font-family:system-ui;background:#0f172a;color:#e5e7eb}
-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#020617;box-shadow:0 2px 8px rgba(0,0,0,.4)}
-.logo{font-weight:700}
-.menu{cursor:pointer}
-.sidebar{position:fixed;top:0;left:-260px;width:260px;height:100%;background:#020617;padding:20px;transition:.3s}
-.sidebar.active{left:0}
-.sidebar a{display:block;color:#e5e7eb;text-decoration:none;margin:14px 0}
-.container{max-width:900px;margin:auto;padding:20px}
-.banner{width:100%;border-radius:14px;margin-bottom:20px}
-.chat{background:#020617;border-radius:14px;padding:12px;height:420px;overflow-y:auto}
-.msg{margin:10px 0;padding:10px 12px;border-radius:12px;max-width:80%}
-.user{background:#2563eb;margin-left:auto}
-.bot{background:#111827}
-.inputbar{display:flex;margin-top:12px}
-input{flex:1;padding:12px;border:none;border-radius:12px 0 0 12px;outline:none}
-button{padding:12px 18px;border:none;background:#2563eb;color:white;border-radius:0 12px 12px 0}
-footer{margin-top:30px;padding:18px;text-align:center;font-size:12px;color:#9ca3af}
-.ad{position:fixed;bottom:-260px;left:0;width:100%;background:#020617;padding:20px;box-shadow:0 -5px 20px rgba(0,0,0,.6);transition:.4s}
-.ad.show{bottom:0}
-.ad .close{position:absolute;right:12px;top:10px;cursor:pointer;font-size:18px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>Market Update Bot · dark premium fintech</title>
+  <!-- Font Awesome 6 (free) for icons & menu -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- modern system ui font stack -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      background: #020617;  /* primary deep base */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #e2e8f0;
+    }
+
+    /* main app container – glassmorphism panels */
+    .app {
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+      background: rgba(15, 23, 42, 0.75); /* #0f172a with transparency */
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-radius: 32px 32px 0 0;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(59,130,246,0.15);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(59,130,246,0.2);
+    }
+
+    /* header — glass darker */
+    .header {
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(2, 6, 23, 0.7); /* #020617 glass */
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #f0f9ff 0%, #bae6fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .menu-icon {
+      font-size: 1.8rem;
+      color: #3b82f6;
+      cursor: pointer;
+      transition: 0.2s;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(99,102,241,0.3);
+    }
+
+    .menu-icon:active { background: rgba(59,130,246,0.2); }
+
+    /* banner premium */
+    .banner {
+      margin: 16px 20px 8px 20px;
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border-radius: 28px;
+      height: 110px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" width="200" height="100"><rect width="200" height="100" fill="url(%23grad)"/><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="%233b82f6"/><stop offset="100%" stop-color="%236366f1"/></linearGradient></defs><text x="20" y="55" font-family="system-ui" font-weight="bold" font-size="18" fill="white" opacity="0.9">🚀 glider-app.pages.dev</text></svg>');
+      background-size: cover;
+      background-position: center;
+      border: 1px solid rgba(99,102,241,0.5);
+      box-shadow: 0 8px 20px -8px #3b82f633;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .banner:active { transform: scale(0.98); }
+
+    /* chat area */
+    .chat-container {
+      flex: 1;
+      padding: 16px 16px 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      max-height: 460px;
+      scrollbar-width: thin;
+      scrollbar-color: #3b82f6 #0f172a;
+    }
+    .chat-container::-webkit-scrollbar { width: 4px; }
+    .chat-container::-webkit-scrollbar-track { background: #0f172a; }
+    .chat-container::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 8px; }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+    }
+    .message.bot {
+      align-items: flex-start;
+    }
+    .message.user {
+      align-items: flex-end;
+    }
+
+    .bubble {
+      max-width: 85%;
+      padding: 14px 18px;
+      border-radius: 26px;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(59,130,246,0.2);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+      color: #e2e8f0;
+    }
+    .user .bubble {
+      background: linear-gradient(145deg, #3b82f6, #6366f1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* analysis card inside bubble */
+    .analysis-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed rgba(255,255,255,0.1);
+      padding-bottom: 4px;
+    }
+    .row .label { opacity: 0.7; font-weight: 400; }
+    .row .value { font-weight: 600; }
+    .signal-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .buy { background: #10b981; color: #020617; }
+    .sell { background: #ef4444; color: white; }
+    .hold { background: #f59e0b; color: #020617; }
+    .risk-low { color: #10b981; }
+    .risk-medium { color: #f59e0b; }
+    .risk-high { color: #ef4444; }
+
+    /* examples chips */
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 16px 0 16px;
+    }
+    .chip {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #3b82f6;
+      color: #bae6fd;
+      padding: 8px 14px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .chip:active { background: #3b82f6; color: #020617; }
+
+    /* input area */
+    .input-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px 20px 20px;
+      background: rgba(2, 6, 23, 0.5);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(99,102,241,0.2);
+    }
+    .input-area input {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #3b82f6;
+      border-radius: 44px;
+      padding: 16px 20px;
+      font-size: 1rem;
+      color: white;
+      outline: none;
+      backdrop-filter: blur(4px);
+    }
+    .input-area input::placeholder { color: #64748b; }
+    .input-area button {
+      background: linear-gradient(145deg, #3b82f6, #6366f1);
+      border: none;
+      width: 56px;
+      height: 56px;
+      border-radius: 56px;
+      color: white;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px #3b82f666;
+      cursor: pointer;
+      transition: 0.1s;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .input-area button:active { transform: scale(0.96); opacity: 0.9; }
+
+    /* footer with ad & disclaimer */
+    .footer {
+      background: rgba(2, 6, 23, 0.8);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid #3b82f633;
+      padding: 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .footer-ad {
+      width: 100%;
+      height: 60px;
+      background: linear-gradient(90deg, #0f172a, #1e293b);
+      border-radius: 20px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="200" height="50"><rect width="200" height="50" fill="%233b82f6" opacity="0.2"/><text x="20" y="30" font-family="system-ui" font-weight="500" font-size="14" fill="%23ffffff" opacity="0.8">📊 footer-ad.jpg  |  premium space</text></svg>');
+      background-size: cover;
+      border: 1px solid #6366f1;
+    }
+    .disclaimer {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* SIDEBAR (drawer) premium glass */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      visibility: hidden;
+      opacity: 0;
+      transition: 0.2s ease;
+    }
+    .sidebar {
+      position: fixed;
+      top: 0; left: -300px;
+      width: 280px;
+      height: 100%;
+      background: rgba(2, 6, 23, 0.95);
+      backdrop-filter: blur(24px);
+      border-right: 1px solid #3b82f6;
+      z-index: 1000;
+      padding: 32px 20px;
+      transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 10px 0 30px -10px #020617;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .sidebar.open { left: 0; }
+    .sidebar-overlay.open {
+      visibility: visible;
+      opacity: 1;
+    }
+    .sidebar .close-icon {
+      color: #3b82f6;
+      font-size: 1.8rem;
+      align-self: flex-end;
+      cursor: pointer;
+    }
+    .sidebar-btn {
+      background: transparent;
+      border: 1.5px solid #3b82f6;
+      color: #3b82f6;
+      padding: 16px;
+      border-radius: 44px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      width: 100%;
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .sidebar-btn:hover {
+      background: #3b82f6;
+      color: #020617;
+    }
+    .hidden-content {
+      margin-top: 12px;
+      padding: 16px;
+      background: #0f172a;
+      border-radius: 24px;
+      border-left: 4px solid #6366f1;
+      color: #bae6fd;
+      font-size: 1.2rem;
+      font-weight: 500;
+      display: none;
+    }
+    .hidden-content.show { display: block; }
+  </style>
 </head>
 <body>
-<header>
-<div class="logo">MarketBot</div>
-<div class="menu" onclick="toggleMenu()">☰</div>
-</header>
+<div class="app">
+  <!-- header -->
+  <div class="header">
+    <h1>Market Update Bot</h1>
+    <div class="menu-icon" id="menuToggle"><i class="fas fa-bars"></i></div>
+  </div>
 
+  <!-- banner (clickable) -->
+  <div class="banner" id="bannerClick" title="Open glider-app.pages.dev"></div>
+
+  <!-- example chips -->
+  <div class="examples" id="exampleChips">
+    <span class="chip" data-symbol="TCS">TCS</span>
+    <span class="chip" data-symbol="INFY">INFY</span>
+    <span class="chip" data-symbol="RELIANCE">RELIANCE</span>
+    <span class="chip" data-symbol="HDFCBANK">HDFCBANK</span>
+  </div>
+
+  <!-- chat messages area -->
+  <div class="chat-container" id="chatContainer">
+    <div class="message bot">
+      <div class="bubble">👋 Hello! Enter an NSE stock symbol (e.g., TCS, INFY) to get live price, signal & risk.</div>
+    </div>
+  </div>
+
+  <!-- input field -->
+  <div class="input-area">
+    <input type="text" id="symbolInput" placeholder="e.g. TCS" autocomplete="off" autocapitalize="characters">
+    <button id="sendBtn"><i class="fas fa-arrow-up"></i></button>
+  </div>
+
+  <!-- footer with static banner ad -->
+  <div class="footer">
+    <div class="footer-ad"></div>
+    <div class="disclaimer">Trade at your own risk. The developer is not responsible for any financial loss.</div>
+  </div>
+</div>
+
+<!-- sidebar (drawer) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 <div class="sidebar" id="sidebar">
-<h3>Menu</h3>
-<a href="#" onclick="showFollow()">Follow Developer</a>
-<div id="follow" style="display:none;color:#38bdf8">Instagram: @_fayizeeyy</div>
+  <div class="close-icon" id="closeSidebar"><i class="fas fa-times"></i></div>
+  <button class="sidebar-btn" id="followDevBtn">Follow Developer <i class="fas fa-heart" style="margin-left: 8px;"></i></button>
+  <div class="hidden-content" id="hiddenInsta">Instagram @_fayizeeyy</div>
 </div>
 
-<div class="container">
-<img src="assets/banner.jpg" class="banner" />
-<div class="chat" id="chat"></div>
-<div class="inputbar">
-<input id="input" placeholder="Ask market updates..." />
-<button onclick="send()">Send</button>
-</div>
-</div>
-
-<div class="ad" id="ad">
-<div class="close" onclick="closeAd()">✕</div>
-<h3>Sponsored</h3>
-<p>Upgrade to premium signals coming soon...</p>
-</div>
-
-<footer>
-Trade at your own risk. The developer is not responsible for any financial loss.
-</footer>
-
+<!-- javascript -->
 <script>
-const chat=document.getElementById('chat');
-function add(text,type){
- const div=document.createElement('div');
- div.className='msg '+type;
- div.innerText=text;
- chat.appendChild(div);
- chat.scrollTop=chat.scrollHeight;
-}
+  (function() {
+    // DOM elements
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const followBtn = document.getElementById('followDevBtn');
+    const hiddenInsta = document.getElementById('hiddenInsta');
+    const banner = document.getElementById('bannerClick');
+    const chatContainer = document.getElementById('chatContainer');
+    const symbolInput = document.getElementById('symbolInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const chips = document.querySelectorAll('.chip');
 
-function marketStatus(){
- const now=new Date();
- const hour=now.getHours();
- if(hour>=9 && hour<15) return 'Market is OPEN';
- return 'Market is CLOSED';
-}
+    // --- sidebar logic ---
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+    }
+    function closeSidebarFunc() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+    }
+    menuToggle.addEventListener('click', openSidebar);
+    closeSidebar.addEventListener('click', closeSidebarFunc);
+    overlay.addEventListener('click', closeSidebarFunc);
 
-async function fetchPrice(symbol){
- try{
-  const url=`https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}.NS`;
-  const res=await fetch(url);
-  const data=await res.json();
-  const q=data.quoteResponse.result[0];
-  if(!q) return 'Stock not found';
-  return `${q.shortName} : ₹${q.regularMarketPrice} (${q.regularMarketChangePercent.toFixed(2)}%)`;
- }catch(e){
-  return 'Unable to fetch live price now';
- }
-}
+    // follow button reveals hidden insta
+    followBtn.addEventListener('click', function() {
+      hiddenInsta.classList.toggle('show');
+    });
 
-async function botReply(q){
- q=q.toLowerCase();
- if(q.includes('open')||q.includes('close')) return marketStatus();
- if(q.startsWith('price ')){
-  const symbol=q.split('price ')[1].trim().toUpperCase();
-  return await fetchPrice(symbol);
- }
- if(q.includes('suggest')) return 'Suggestion: Trade only trending stocks with volume confirmation.';
- return 'Type: price TCS or price INFY to get live NSE rates.';
-}
+    // banner click open external
+    banner.addEventListener('click', function() {
+      window.open('https://glider-app.pages.dev', '_blank');
+    });
 
-async function send(){
- const input=document.getElementById('input');
- if(!input.value) return;
- const text=input.value;
- add(text,'user');
- input.value='';
- add('Checking market...','bot');
- const reply=await botReply(text);
- chat.lastChild.innerText=reply;
-}
+    // --- helper: add message to chat ---
+    function addMessage(text, isUser = false) {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message');
+      msgDiv.classList.add(isUser ? 'user' : 'bot');
+      const bubble = document.createElement('div');
+      bubble.classList.add('bubble');
+      bubble.innerHTML = text;
+      msgDiv.appendChild(bubble);
+      chatContainer.appendChild(msgDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return msgDiv;
+    }
 
-function toggleMenu(){
- document.getElementById('sidebar').classList.toggle('active');
-}
+    // --- show typing indicator (returns the bubble element to replace) ---
+    function showTyping() {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', 'bot');
+      msgDiv.id = 'typingIndicator';
+      const bubble = document.createElement('div');
+      bubble.classList.add('bubble');
+      bubble.innerHTML = 'Checking... <i class="fas fa-spinner fa-pulse"></i>';
+      msgDiv.appendChild(bubble);
+      chatContainer.appendChild(msgDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return msgDiv;
+    }
 
-function showFollow(){
- document.getElementById('follow').style.display='block';
-}
+    // --- remove typing indicator ---
+    function removeTyping() {
+      const typing = document.getElementById('typingIndicator');
+      if (typing) typing.remove();
+    }
 
-setTimeout(()=>document.getElementById('ad').classList.add('show'),2500);
-function closeAd(){document.getElementById('ad').classList.remove('show');}
+    // --- compute signal & risk based on spec ---
+    function getSignal(price, open, changePercent) {
+      if (price > open && changePercent > 1.0) return 'BUY';
+      else if (price < open && changePercent < -1.0) return 'SELL';
+      else return 'HOLD';
+    }
+    function getRisk(changePercent) {
+      const absChange = Math.abs(changePercent);
+      if (absChange <= 2.0) return { level: 'LOW', class: 'risk-low' };
+      else if (absChange > 2.0 && absChange <= 4.0) return { level: 'MEDIUM', class: 'risk-medium' };
+      else return { level: 'HIGH', class: 'risk-high' };
+    }
+
+    // --- format market state ---
+    function formatMarketState(state) {
+      if (!state) return 'N/A';
+      if (state === 'REGULAR') return '🟢 Open (Regular)';
+      if (state === 'PRE') return '🟡 Pre-market';
+      if (state === 'POST') return '🟡 After-hours';
+      return '🔴 Closed';
+    }
+
+    // --- fetch stock data from Yahoo via allorigins proxy ---
+    async function fetchStockData(symbolRaw) {
+      const symbol = symbolRaw.trim().toUpperCase();
+      if (!symbol) return;
+
+      // user message
+      addMessage(symbol, true);
+
+      // show typing
+      showTyping();
+
+      try {
+        const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}.NS`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Network issue');
+
+        const textData = await response.text(); // allorigins returns raw text (JSON string)
+        const json = JSON.parse(textData);
+
+        const quote = json.quoteResponse?.result?.[0];
+        if (!quote) throw new Error('Symbol not found on NSE');
+
+        // extract needed fields
+        const company = quote.longName || quote.shortName || symbol;
+        const price = quote.regularMarketPrice;
+        const change = quote.regularMarketChangePercent;
+        const open = quote.regularMarketOpen || price; // fallback if open missing
+        const dayHigh = quote.regularMarketDayHigh;
+        const dayLow = quote.regularMarketDayLow;
+        const marketState = quote.marketState || 'CLOSED';
+
+        // signal & risk
+        const signal = getSignal(price, open, change);
+        const riskObj = getRisk(change);
+        const riskText = riskObj.level;
+
+        // remove typing and show analysis
+        removeTyping();
+
+        // build analysis bubble
+        const analysisHTML = `
+          <div style="font-weight:600; margin-bottom:8px;">📈 ${company}</div>
+          <div class="analysis-grid">
+            <div class="row"><span class="label">💰 Live price</span><span class="value">₹${price?.toFixed(2) ?? 'N/A'}</span></div>
+            <div class="row"><span class="label">📊 % change</span><span class="value" style="color:${change >= 0 ? '#10b981' : '#ef4444'};">${change?.toFixed(2) ?? 'N/A'}%</span></div>
+            <div class="row"><span class="label">📈 Day high</span><span class="value">₹${dayHigh?.toFixed(2) ?? 'N/A'}</span></div>
+            <div class="row"><span class="label">📉 Day low</span><span class="value">₹${dayLow?.toFixed(2) ?? 'N/A'}</span></div>
+            <div class="row"><span class="label">🚦 Signal</span><span class="value"><span class="signal-badge ${signal.toLowerCase()}">${signal}</span></span></div>
+            <div class="row"><span class="label">⚠️ Risk level</span><span class="value ${riskObj.class}">${riskText}</span></div>
+            <div class="row"><span class="label">🕒 Market</span><span class="value">${formatMarketState(marketState)}</span></div>
+          </div>
+        `;
+        addMessage(analysisHTML, false);
+      } catch (err) {
+        removeTyping();
+        addMessage(`❌ Error: ${err.message}. Please check symbol or try again.`, false);
+      }
+    }
+
+    // --- send button ---
+    sendBtn.addEventListener('click', () => {
+      const sym = symbolInput.value.trim();
+      if (sym) {
+        fetchStockData(sym);
+        symbolInput.value = ''; // optional clear
+      }
+    });
+
+    // --- enter key ---
+    symbolInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    // --- chip click ---
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const sym = chip.getAttribute('data-symbol');
+        symbolInput.value = sym;
+        fetchStockData(sym);
+      });
+    });
+
+    // --- small demo: initial fake market status (optional) but we fetch from live, no need prefill.
+    // But to showcase market status we can add a dummy after 1s? not needed, first message already there.
+
+    // --- extra: auto uppercase input
+    symbolInput.addEventListener('input', function() {
+      this.value = this.value.toUpperCase().replace(/[^A-Z.]/g, '');
+    });
+
+  })();
 </script>
+
+<!-- small additional note: assets simulated but fully functional -->
 </body>
 </html>
