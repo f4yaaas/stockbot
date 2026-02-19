@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title> Stock Market Update Bot </title>
+    <title>Stock Market Update Bot </title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
             --bg-base: #000000;
@@ -76,18 +78,28 @@
         .message.user { align-items: flex-end; }
 
         .bubble {
-            max-width: 90%; padding: 16px 20px;
+            max-width: 95%; padding: 16px 20px;
             border-radius: 24px; font-size: 0.95rem; line-height: 1.6;
         }
 
         .bot .bubble { background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-primary); border-bottom-left-radius: 4px; }
         .user .bubble { background: #fff; color: #000; font-weight: 500; border-bottom-right-radius: 4px; }
 
-        .analysis-card { width: 100%; background: #0a0a0a; border-radius: 20px; padding: 20px; border: 1px solid var(--border-primary); margin-top: 10px; }
-        .card-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1a1a1a; }
+        .analysis-card { width: 100%; background: #0a0a0a; border-radius: 20px; padding: 15px; border: 1px solid var(--border-primary); margin-top: 10px; }
+        .card-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
         .card-row:last-child { border: 0; }
-        .label { color: var(--text-dim); font-size: 0.85rem; }
-        .value { font-weight: 600; font-size: 0.9rem; }
+        .label { color: var(--text-dim); font-size: 0.8rem; }
+        .value { font-weight: 600; font-size: 0.85rem; }
+
+        /* TradingView Chart Container */
+        .chart-container {
+            width: 100%;
+            height: 200px;
+            margin-top: 12px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #222;
+        }
 
         .signal-pill { padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
         .buy { background: rgba(16, 163, 127, 0.15); color: var(--accent-green); }
@@ -102,31 +114,17 @@
         .input-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 1rem; outline: none; }
         .send-btn { width: 44px; height: 44px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
 
-        /* Updated Ad Footer for Landscape Banner */
         .ad-footer {
             width: 100%; 
-            height: 110px; /* Height kootti image nallonam kaanan */
+            height: 110px;
             background: #111;
             border-top: 1px solid var(--border-primary);
             position: relative; cursor: pointer;
             overflow: hidden;
         }
-        .ad-footer img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; /* Landscape image fill aavan */
-            object-position: center;
-        }
-        .close-ad { 
-            position: absolute; top: 8px; right: 12px; 
-            color: #fff; background: rgba(0,0,0,0.6); 
-            width: 26px; height: 26px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 0.85rem; z-index: 20; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
+        .ad-footer img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+        .close-ad { position: absolute; top: 8px; right: 12px; color: #fff; background: rgba(0,0,0,0.6); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; z-index: 20; }
 
-        /* Sidebar Styles */
         .sidebar { position: absolute; top: 0; left: -100%; width: 80%; height: 100%; background: var(--bg-surface); z-index: 100; transition: left 0.3s ease; padding: 40px 24px; border-right: 1px solid var(--border-primary); }
         .sidebar.open { left: 0; }
         .sidebar-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 90; display: none; }
@@ -161,7 +159,7 @@
     <div class="chip-container">
         <div class="chip" onclick="handleChip('RELIANCE')">RELIANCE</div>
         <div class="chip" onclick="handleChip('TCS')">TCS</div>
-        <div class="chip" onclick="handleChip('INFY') image-kootti">INFY</div>
+        <div class="chip" onclick="handleChip('INFY')">INFY</div>
     </div>
 
     <div class="input-wrapper">
@@ -173,8 +171,7 @@
 
     <div class="ad-footer" id="adFooter" onclick="window.open('https://glider-app.pages.dev', '_blank')">
         <div class="close-ad" id="closeAdBtn"><i class="fas fa-times"></i></div>
-        <!-- Banner image view kooduthal nallathakkan height kootti -->
-        <img src="asset/banner.jpg" alt="[Glider Banner Landscape]" onerror="this.style.display='none'">
+        <img src="asset/banner.jpg" alt="[Glider Banner]" onerror="this.style.display='none'">
     </div>
 </div>
 
@@ -200,19 +197,46 @@
         div.innerHTML = `<div class="bubble">${html}</div>`;
         chat.appendChild(div);
         chat.scrollTop = chat.scrollHeight;
+        return div;
     }
 
     async function fetchData(url) {
-        // Primary: AllOrigins
         try {
             const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}&cache=${Date.now()}`);
             const data = await res.json();
             return JSON.parse(data.contents);
         } catch (e) {
-            // Fallback: Corsproxy.io
             const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
             return await res.json();
         }
+    }
+
+    function initChart(containerId, data) {
+        const container = document.getElementById(containerId);
+        const chart = LightweightCharts.createChart(container, {
+            layout: { backgroundColor: '#0a0a0a', textColor: '#888' },
+            grid: { vertLines: { color: '#1a1a1a' }, horzLines: { color: '#1a1a1a' } },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: '#2d2d2d' },
+            timeScale: { borderColor: '#2d2d2d' },
+            handleScroll: false,
+            handleScale: false,
+        });
+
+        const lineSeries = chart.addLineSeries({ 
+            color: '#10a37f', 
+            lineWidth: 2,
+            priceFormat: { type: 'price', precision: 2, minMove: 0.05 }
+        });
+        
+        // Mapping Yahoo historical data to TradingView format
+        const chartData = data.timestamp.map((t, i) => ({
+            time: t,
+            value: data.indicators.quote[0].close[i]
+        })).filter(d => d.value !== null);
+
+        lineSeries.setData(chartData);
+        chart.timeScale().fitContent();
     }
 
     async function processRequest() {
@@ -223,43 +247,49 @@
         addMessage(sym, 'user');
         input.value = '';
 
-        const loader = document.createElement('div');
-        loader.className = 'message bot';
-        loader.innerHTML = `<div class="bubble"><i class="fas fa-circle-notch fa-spin"></i> Analyzing ${formattedSym}...</div>`;
-        chat.appendChild(loader);
+        const loader = addMessage(`<i class="fas fa-circle-notch fa-spin"></i> Analyzing ${formattedSym}...`, 'bot');
 
         try {
-            const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedSym}`;
-            const result = await fetchData(url);
-            const quote = result.quoteResponse?.result?.[0];
+            // Fetching Quote and 1-day historical data (5m interval) for the chart
+            const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedSym}`;
+            const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${formattedSym}?range=1d&interval=5m`;
             
+            const [quoteRes, chartRes] = await Promise.all([fetchData(quoteUrl), fetchData(chartUrl)]);
+            const quote = quoteRes.quoteResponse?.result?.[0];
+            const history = chartRes.chart?.result?.[0];
+
             loader.remove();
-            if(!quote) throw new Error("Data kitiyilla");
+            if(!quote) throw new Error("Data error");
 
             const price = quote.regularMarketPrice;
             const change = quote.regularMarketChangePercent || 0;
-            const status = (quote.marketState || "CLOSED").toLowerCase();
+            const chartId = 'chart_' + Date.now();
 
             let signal = "HOLD", cls = "hold";
-            if(change > 1.5) { signal = "BUY"; cls = "buy"; }
-            else if(change < -1.5) { signal = "SELL"; cls = "sell"; }
+            if(change > 1.2) { signal = "BUY"; cls = "buy"; }
+            else if(change < -1.2) { signal = "SELL"; cls = "sell"; }
 
             addMessage(`
                 <div style="font-weight:700; margin-bottom:8px;">${quote.longName || sym}</div>
                 <div class="analysis-card">
                     <div class="card-row"><span class="label">Price</span><span class="value">₹${price.toLocaleString()}</span></div>
                     <div class="card-row"><span class="label">Change</span><span class="value" style="color:${change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${change.toFixed(2)}%</span></div>
-                    <div class="card-row"><span class="label">Market</span><span class="value">${status}</span></div>
                     <div class="card-row" style="border:0; margin-top:10px;">
                         <span class="signal-pill ${cls}">${signal}</span>
-                        <span style="font-size:0.7rem; color:var(--text-dim);">VOL: ${(quote.regularMarketVolume/1000000).toFixed(1)}M</span>
+                        <span style="font-size:0.7rem; color:var(--text-dim); margin-left:10px;">VOL: ${(quote.regularMarketVolume/1000000).toFixed(1)}M</span>
                     </div>
+                    <!-- TradingView Light Implementation -->
+                    <div id="${chartId}" class="chart-container"></div>
                 </div>
             `, 'bot');
 
+            if(history) {
+                setTimeout(() => initChart(chartId, history), 100);
+            }
+
         } catch (e) {
             loader.remove();
-            addMessage(`<span style="color:var(--accent-red)">Sync Failed aayi.</span><br><small>Yahoo Finance proxy vazhi restrict cheyyunnundu. 10 second kazhinju onnude try cheyyu.</small>`, 'bot');
+            addMessage(`<span style="color:var(--accent-red)">Sync Failed.</span><br><small>Connection interrupted. 10 second kazhinju onnude try cheyyu.</small>`, 'bot');
         }
     }
 </script>
