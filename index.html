@@ -179,7 +179,7 @@
 </head>
 <body>
 
-<div id="toast">Details Shared!</div>
+<div id="toast">Opening share options...</div>
 
 <div class="app">
     <div class="sidebar-overlay" id="overlay"></div>
@@ -223,7 +223,6 @@
 
     <div class="ad-footer" id="adFooter" onclick="window.open('https://glider-app.pages.dev', '_blank')">
         <div class="close-ad" id="closeAdBtn"><i class="fas fa-times"></i></div>
-        <!-- Banner correctly pointing to /asset/banner.jpg -->
         <img src="/asset/banner.jpg" alt="Promotion" onerror="this.style.display='none'">
     </div>
 </div>
@@ -252,28 +251,31 @@
         const fullMessage = `${text}\n\n🔗 Get Live Updates: ${APP_LINK}`;
         
         if (navigator.share) {
+            showToast("Opening share options...");
             try {
-                // Direct sharing (typically opens WhatsApp, Telegram, etc.)
+                // This triggers the native OS share sheet (WhatsApp, Telegram, Instagram etc.)
                 await navigator.share({
-                    title: 'Market Terminal Update',
+                    title: 'NSE Market Update',
                     text: fullMessage
                 });
-            } catch (err) { console.log("Sharing cancelled"); }
+            } catch (err) { 
+                console.log("Direct share failed or was closed.");
+            }
         } else {
-            // Fallback to copy only if browser doesn't support direct sharing
+            // ONLY if browser has no share capability, we fallback to clipboard
             const el = document.createElement('textarea');
             el.value = fullMessage;
             document.body.appendChild(el);
             el.select();
             document.execCommand('copy');
             document.body.removeChild(el);
-            showToast("Details Copied!");
+            showToast("Link Copied (Share unavailable)");
         }
     }
 
-    shareBtn.onclick = () => shareContent("📈 Check out this Market Terminal Bot! It gives real-time NSE stock signals instantly.");
+    shareBtn.onclick = () => shareContent("📈 Get real-time NSE stock signals and market analysis instantly with Market Bot!");
 
-    function showToast(msg = "Shared Successfully!") {
+    function showToast(msg) {
         toast.innerText = msg;
         toast.style.display = 'block';
         setTimeout(() => toast.style.display = 'none', 3000);
@@ -299,7 +301,7 @@
         addMessage(symbol, 'user');
         input.value = '';
 
-        const loader = addMessage(`<i class="fas fa-circle-notch fa-spin"></i> Analyzing Market...`, 'bot');
+        const loader = addMessage(`<i class="fas fa-circle-notch fa-spin"></i> Fetching Market Data...`, 'bot');
 
         try {
             const res = await fetch(`${API_BASE}/?symbol=${encodeURIComponent(symbol)}`, {
@@ -320,6 +322,7 @@
             if (sig.includes("buy")) sigClass = "buy";
             else if (sig.includes("sell")) sigClass = "sell";
 
+            // Format data for sharing
             const shareText = `📊 *Market Update: ${data.symbol || symbol}*\n💰 Price: ₹${data.price}\n📉 Change: ${data.change}\n🎯 Signal: ${data.signal}\n⚠️ Risk: ${data.risk}`;
 
             addMessage(`
@@ -335,7 +338,7 @@
                         </div>
                         <div style="font-size:0.65rem; color:#444; margin-top:10px; text-align:right;">Updated: ${data.time || 'Live'}</div>
                     </div>
-                    <div class="card-share-btn" onclick="shareContent('${shareText.replace(/'/g, "\\'").replace(/\n/g, "\\n")}')">
+                    <div class="card-share-btn" onclick="shareContent('${shareText.replace(/'/g, "\\'").replace(/\n/g, "\\n")}')" title="Share directly to apps">
                         <i class="fas fa-paper-plane"></i>
                     </div>
                 </div>
@@ -343,7 +346,7 @@
 
         } catch (err) {
             loader.remove();
-            addMessage(`<span style="color:var(--accent-red)">Connection Error.</span><br><small>Unable to reach the market server.</small>`, 'bot');
+            addMessage(`<span style="color:var(--accent-red)">Server Connection Failed.</span><br><small>Please check your network and try again.</small>`, 'bot');
             console.error(err);
         }
     }
