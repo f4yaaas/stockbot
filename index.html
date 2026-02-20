@@ -90,15 +90,6 @@
         .label { color: var(--text-dim); font-size: 0.8rem; }
         .value { font-weight: 600; font-size: 0.85rem; }
 
-        .chart-container {
-            width: 100%;
-            height: 200px;
-            margin-top: 12px;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #222;
-        }
-
         .signal-pill { padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
         .buy { background: rgba(16, 163, 127, 0.15); color: var(--accent-green); }
         .sell { background: rgba(217, 78, 78, 0.15); color: var(--accent-red); }
@@ -178,7 +169,7 @@
 
     <div class="chat-area" id="chat">
         <div class="message bot">
-            <div class="bubble">Welcome to Market Terminal. Enter an NSE ticker symbol (e.g., RELIANCE) to receive real-time signals and technical charts.</div>
+            <div class="bubble">Welcome to Market Terminal. Enter an NSE ticker symbol (e.g., RELIANCE) to receive real-time signals and data.</div>
         </div>
     </div>
 
@@ -202,7 +193,7 @@
 </div>
 
 <script>
-    const WORKER_URL = "https://stockbot.fayascreator.workers.dev";
+    const API_BASE = "https://stockbot.fayascreator.workers.dev";
     
     const chat = document.getElementById('chat');
     const input = document.getElementById('symbolInp');
@@ -219,7 +210,7 @@
 
     shareBtn.onclick = async () => {
         const shareUrl = "https://f4yaaas.github.io/stockbot";
-        const shareText = "📈 Check out this Market Terminal Bot! It gives real-time NSE stock signals and TradingView charts instantly.";
+        const shareText = "📈 Check out this Market Terminal Bot! It gives real-time NSE stock signals instantly.";
         
         if (navigator.share) {
             try {
@@ -229,7 +220,7 @@
                     url: shareUrl,
                 });
             } catch (err) {
-                console.log("Sharing cancelled or failed");
+                console.log("Sharing cancelled");
             }
         } else {
             const fullMessage = `${shareText}\n\nLink: ${shareUrl}`;
@@ -261,103 +252,53 @@
         return div;
     }
 
-    async function apiRequest(path) {
-        // Updated architecture: Browser -> Your Specific Worker URL -> Yahoo
-        const fullUrl = `${WORKER_URL}${path}`;
-        
-        try {
-            const res = await fetch(fullUrl);
-            if (!res.ok) throw new Error("API Limit");
-            return await res.json();
-        } catch (e) {
-            // Fallback proxy only if worker fails
-            const target = `https://query1.finance.yahoo.com${path}`;
-            const backupRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(target)}&cache=${Date.now()}`);
-            const data = await backupRes.json();
-            return JSON.parse(data.contents);
-        }
-    }
-
-    function initChart(containerId, data) {
-        const container = document.getElementById(containerId);
-        const chart = LightweightCharts.createChart(container, {
-            layout: { backgroundColor: '#0a0a0a', textColor: '#888' },
-            grid: { vertLines: { color: '#1a1a1a' }, horzLines: { color: '#1a1a1a' } },
-            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-            rightPriceScale: { borderColor: '#2d2d2d' },
-            timeScale: { borderColor: '#2d2d2d' },
-            handleScroll: false,
-            handleScale: false,
-        });
-
-        const lineSeries = chart.addLineSeries({ 
-            color: '#10a37f', 
-            lineWidth: 2,
-            priceFormat: { type: 'price', precision: 2, minMove: 0.05 }
-        });
-        
-        const chartData = data.timestamp.map((t, i) => ({
-            time: t,
-            value: data.indicators.quote[0].close[i]
-        })).filter(d => d.value !== null);
-
-        lineSeries.setData(chartData);
-        chart.timeScale().fitContent();
-    }
-
     async function processRequest() {
-        let sym = input.value.trim().toUpperCase();
-        if(!sym) return;
-        let formattedSym = sym.includes('.') ? sym : `${sym}.NS`;
+        const symbol = input.value.trim().toUpperCase();
+        if(!symbol) return;
         
-        addMessage(sym, 'user');
+        addMessage(symbol, 'user');
         input.value = '';
 
-        const loader = addMessage(`<i class="fas fa-circle-notch fa-spin"></i> Fetching Live Data...`, 'bot');
+        const loader = addMessage(`<i class="fas fa-circle-notch fa-spin"></i> Analyzing Market...`, 'bot');
 
         try {
-            const quotePath = `/v7/finance/quote?symbols=${formattedSym}`;
-            const chartPath = `/v8/finance/chart/${formattedSym}?range=1d&interval=5m`;
-            
-            const [quoteRes, chartRes] = await Promise.all([
-                apiRequest(quotePath), 
-                apiRequest(chartPath)
-            ]);
+            const res = await fetch(`${API_BASE}/?symbol=${encodeURIComponent(symbol)}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
 
-            const quote = quoteRes.quoteResponse?.result?.[0];
-            const history = chartRes.chart?.result?.[0];
-
+            const data = await res.json();
             loader.remove();
-            if(!quote) throw new Error("Data error");
 
-            const price = quote.regularMarketPrice;
-            const change = quote.regularMarketChangePercent || 0;
-            const chartId = 'chart_' + Date.now();
+            if (data.error) {
+                addMessage(`⚠️ ${data.error}`, 'bot');
+                return;
+            }
 
-            let signal = "NEUTRAL", cls = "hold";
-            if(change > 1.2) { signal = "BUY SIGNAL"; cls = "buy"; }
-            else if(change < -1.2) { signal = "SELL SIGNAL"; cls = "sell"; }
+            // Determine signal class
+            let sigClass = "hold";
+            const sig = (data.signal || "").toLowerCase();
+            if (sig.includes("buy")) sigClass = "buy";
+            else if (sig.includes("sell")) sigClass = "sell";
 
             addMessage(`
-                <div style="font-weight:700; margin-bottom:8px;">${quote.longName || sym}</div>
+                <div style="font-weight:700; margin-bottom:8px;">${data.symbol || symbol}</div>
                 <div class="analysis-card">
-                    <div class="card-row"><span class="label">Last Price</span><span class="value">₹${price.toLocaleString()}</span></div>
-                    <div class="card-row"><span class="label">Day Change</span><span class="value" style="color:${change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${change.toFixed(2)}%</span></div>
+                    <div class="card-row"><span class="label">Last Price</span><span class="value">₹${data.price || 'N/A'}</span></div>
+                    <div class="card-row"><span class="label">Day Change</span><span class="value" style="color:${parseFloat(data.change) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${data.change || '0%'}</span></div>
+                    <div class="card-row"><span class="label">High / Low</span><span class="value">H: ${data.dayHigh} | L: ${data.dayLow}</span></div>
                     <div class="card-row" style="border:0; margin-top:10px;">
-                        <span class="signal-pill ${cls}">${signal}</span>
-                        <span style="font-size:0.7rem; color:var(--text-dim); margin-left:10px;">VOL: ${(quote.regularMarketVolume/1000000).toFixed(1)}M</span>
+                        <span class="signal-pill ${sigClass}">${data.signal || 'NEUTRAL'}</span>
+                        <span style="font-size:0.7rem; color:var(--text-dim); margin-left:10px;">Risk: ${data.risk || 'Normal'}</span>
                     </div>
-                    <div id="${chartId}" class="chart-container"></div>
+                    <div style="font-size:0.65rem; color:#444; margin-top:10px; text-align:right;">Updated: ${data.time || 'Live'}</div>
                 </div>
             `, 'bot');
 
-            if(history) {
-                setTimeout(() => initChart(chartId, history), 100);
-            }
-
-        } catch (e) {
+        } catch (err) {
             loader.remove();
-            addMessage(`<span style="color:var(--accent-red)">Connection Error.</span><br><small>Failed to reach the Market API. Check your internet or try again.</small>`, 'bot');
+            addMessage(`<span style="color:var(--accent-red)">Connection Error.</span><br><small>Unable to reach the market server. Please check your internet or worker status.</small>`, 'bot');
+            console.error(err);
         }
     }
 </script>
