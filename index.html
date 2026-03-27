@@ -3,9 +3,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stock Market Update Bot</title>
-    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- TradingView Lightweight Charts -->
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
@@ -129,6 +127,7 @@
 
         .chip-container { display: flex; gap: 8px; overflow-x: auto; padding: 0 20px 15px; }
         .chip { white-space: nowrap; padding: 8px 16px; background: var(--bg-panel); border: 1px solid var(--border-primary); border-radius: 100px; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); cursor: pointer; }
+        .chip-beginner { border-color: var(--accent-green); color: #fff; }
 
         .input-wrapper { padding: 16px 20px 10px; background: var(--bg-surface); border-top: 1px solid var(--border-primary); z-index: 5; }
         .input-box { background: var(--bg-panel); border: 1px solid var(--border-primary); border-radius: 100px; padding: 6px 6px 6px 20px; display: flex; align-items: center; gap: 10px; }
@@ -146,7 +145,7 @@
         .ad-footer img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
         .close-ad { position: absolute; top: 8px; right: 12px; color: #fff; background: rgba(0,0,0,0.6); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; z-index: 20; }
 
-        .sidebar { position: absolute; top: 0; left: -100%; width: 80%; height: 100%; background: var(--bg-surface); z-index: 100; transition: left 0.3s ease; padding: 40px 24px; border-right: 1px solid var(--border-primary); }
+        .sidebar { position: absolute; top: 0; left: -100%; width: 85%; height: 100%; background: var(--bg-surface); z-index: 100; transition: left 0.3s ease; padding: 40px 24px; border-right: 1px solid var(--border-primary); overflow-y: auto; }
         .sidebar.open { left: 0; }
         .sidebar-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 90; display: none; }
 
@@ -167,6 +166,8 @@
         .sidebar-item:active { transform: scale(0.98); }
         .sidebar-item i { width: 20px; text-align: center; color: var(--accent-green); }
 
+        .policy-text { font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; margin-top: 20px; padding: 15px; background: #080808; border-radius: 12px; border: 1px solid #1a1a1a; }
+
         #toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #ffffff; color: #000; padding: 14px 28px; border-radius: 100px;
@@ -184,7 +185,7 @@
 <div class="app">
     <div class="sidebar-overlay" id="overlay"></div>
     <div class="sidebar" id="sidebar">
-        <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:30px;">
             <h2 style="font-size:1.2rem;">Terminal Options</h2>
             <i class="fas fa-times" id="closeMenu" style="cursor:pointer;"></i>
         </div>
@@ -195,6 +196,15 @@
         <div class="sidebar-item" id="shareBtn">
             <i class="fas fa-share-nodes"></i> Share To Friends
         </div>
+
+        <div style="margin-top: 30px; border-top: 1px solid #222; padding-top: 20px;">
+            <div style="font-size: 0.8rem; color: var(--accent-green); font-weight: 700; margin-bottom: 10px;">
+                <i class="fas fa-shield-halved"></i> PRIVACY POLICY
+            </div>
+            <div class="policy-text">
+                Data used for analysis is fetched via Yahoo Finance API. We do not store your personal queries. All market signals are generated in real-time. Investments are subject to market risks. Use this terminal for educational purposes only.
+            </div>
+        </div>
     </div>
 
     <header class="header">
@@ -204,11 +214,12 @@
 
     <div class="chat-area" id="chat">
         <div class="message bot">
-            <div class="bubble">Welcome to Market Terminal. Enter an NSE ticker symbol (e.g., RELIANCE) to receive real-time signals and data.</div>
+            <div class="bubble">Welcome to Market Terminal. Enter an NSE ticker symbol to receive real-time signals. Use beginner chips for low-cost stock suggestions.</div>
         </div>
     </div>
 
     <div class="chip-container">
+        <div class="chip chip-beginner" onclick="handleBeginner()">BEGINNER STOCKS</div>
         <div class="chip" onclick="handleChip('RELIANCE')">RELIANCE</div>
         <div class="chip" onclick="handleChip('TCS')">TCS</div>
         <div class="chip" onclick="handleChip('WIPRO')">WIPRO</div>
@@ -249,39 +260,40 @@
 
     async function shareContent(text) {
         const fullMessage = `${text}\n\n🔗 Get Live Updates: ${APP_LINK}`;
-        
         if (navigator.share) {
             showToast("Opening share options...");
             try {
-                // This triggers the native OS share sheet (WhatsApp, Telegram, Instagram etc.)
-                await navigator.share({
-                    title: 'NSE Market Update',
-                    text: fullMessage
-                });
-            } catch (err) { 
-                console.log("Direct share failed or was closed.");
-            }
+                await navigator.share({ title: 'NSE Market Update', text: fullMessage });
+            } catch (err) { console.log("Direct share failed."); }
         } else {
-            // ONLY if browser has no share capability, we fallback to clipboard
             const el = document.createElement('textarea');
-            el.value = fullMessage;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
+            el.value = fullMessage; document.body.appendChild(el);
+            el.select(); document.execCommand('copy');
             document.body.removeChild(el);
             showToast("Link Copied (Share unavailable)");
         }
     }
 
-    shareBtn.onclick = () => shareContent("📈 Get real-time NSE stock signals and market analysis instantly with Market Bot!");
+    shareBtn.onclick = () => shareContent("📈 Get real-time NSE stock signals instantly with Market Bot!");
 
     function showToast(msg) {
-        toast.innerText = msg;
-        toast.style.display = 'block';
+        toast.innerText = msg; toast.style.display = 'block';
         setTimeout(() => toast.style.display = 'none', 3000);
     }
 
     function handleChip(sym) { input.value = sym; processRequest(); }
+    
+    function handleBeginner() {
+        const beginnerStocks = ['IRFC', 'NHPC', 'SJVN', 'IDFCFIRSTB'];
+        addMessage("Fetching top beginner stocks under ₹100...", 'bot');
+        beginnerStocks.forEach((stock, index) => {
+            setTimeout(() => {
+                input.value = stock;
+                processRequest();
+            }, index * 1500);
+        });
+    }
+
     sendBtn.onclick = processRequest;
     input.onkeypress = (e) => { if(e.key === 'Enter') processRequest(); };
 
@@ -297,23 +309,19 @@
     async function processRequest() {
         const symbol = input.value.trim().toUpperCase();
         if(!symbol) return;
-        
         addMessage(symbol, 'user');
         input.value = '';
-
         const loader = addMessage(`<i class="fas fa-circle-notch fa-spin"></i> Fetching Market Data...`, 'bot');
 
         try {
             const res = await fetch(`${API_BASE}/?symbol=${encodeURIComponent(symbol)}`, {
-                method: "GET",
-                headers: { "Accept": "application/json" }
+                method: "GET", headers: { "Accept": "application/json" }
             });
-
             const data = await res.json();
             loader.remove();
 
             if (data.error) {
-                addMessage(`⚠️ ${data.error}`, 'bot');
+                addMessage(`<i class="fas fa-triangle-exclamation"></i> ${data.error}`, 'bot');
                 return;
             }
 
@@ -322,8 +330,7 @@
             if (sig.includes("buy")) sigClass = "buy";
             else if (sig.includes("sell")) sigClass = "sell";
 
-            // Format data for sharing
-            const shareText = `📊 *Market Update: ${data.symbol || symbol}*\n💰 Price: ₹${data.price}\n📉 Change: ${data.change}\n🎯 Signal: ${data.signal}\n⚠️ Risk: ${data.risk}`;
+            const shareText = `📊 Market Update: ${data.symbol || symbol}\nPrice: ₹${data.price}\nSignal: ${data.signal}`;
 
             addMessage(`
                 <div style="font-weight:700; margin-bottom:8px;">${data.symbol || symbol}</div>
@@ -331,23 +338,18 @@
                     <div class="analysis-card">
                         <div class="card-row"><span class="label">Last Price</span><span class="value">₹${data.price || 'N/A'}</span></div>
                         <div class="card-row"><span class="label">Day Change</span><span class="value" style="color:${parseFloat(data.change) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${data.change || '0%'}</span></div>
-                        <div class="card-row"><span class="label">High / Low</span><span class="value">H: ${data.dayHigh} | L: ${data.dayLow}</span></div>
                         <div class="card-row" style="border:0; margin-top:10px;">
                             <span class="signal-pill ${sigClass}">${data.signal || 'NEUTRAL'}</span>
-                            <span style="font-size:0.7rem; color:var(--text-dim); margin-left:10px;">Risk: ${data.risk || 'Normal'}</span>
                         </div>
-                        <div style="font-size:0.65rem; color:#444; margin-top:10px; text-align:right;">Updated: ${data.time || 'Live'}</div>
                     </div>
-                    <div class="card-share-btn" onclick="shareContent('${shareText.replace(/'/g, "\\'").replace(/\n/g, "\\n")}')" title="Share directly to apps">
+                    <div class="card-share-btn" onclick="shareContent('${shareText.replace(/'/g, "\\'").replace(/\n/g, "\\n")}')">
                         <i class="fas fa-paper-plane"></i>
                     </div>
                 </div>
             `, 'bot');
-
         } catch (err) {
             loader.remove();
-            addMessage(`<span style="color:var(--accent-red)">Server Connection Failed.</span><br><small>Please check your network and try again.</small>`, 'bot');
-            console.error(err);
+            addMessage(`<span style="color:var(--accent-red)">Server Connection Failed.</span>`, 'bot');
         }
     }
 </script>
